@@ -4,7 +4,7 @@
 
 * [Copying definition from docs](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/linux_virtual_machine)
 *  Creating main.tf and terraform.tf (configuring the required providers (terraform.tf) and provisioning the vm (main.tf)) <br>
-*  structure of a resource creation the a .tf file:
+*  structure of a resource creation in a .tf file:
   ```terraform
   resource "resrouce type" "resource name"{
     name = "name of the resource in the cloud"
@@ -88,14 +88,24 @@ resource "azurerm_resource_group" "example" {
   location = "West Europe"
 }
 ```
-#### <br>Option 1
-When we use terraform.apply, we will be asked to type the used variables, which is kinda tidious. <br>
-#### <br>Option 2
+#### <b>Option 1</b>
+When we use terraform.apply, we will be asked to type the used variables, which is kinda tidious.
+#### <b>Option 2</b>
 Exporting the variables `export TF_VAR_VARIALBE_NAME=value`, <br> e.g. `export TF_VAR_resource_group_name=example-resources` => We we do `terraform.apply` we won'tbe asked to type the values of the vars (they will automatically read from the env variables).
-#### <br>Option 3
+#### <b>Option 3</b>
 `terraform apply -var resource_group_name=example-resources`
-#### <br>Option 4
+#### <b>Option 4</b>
 Creating a file named `terraform.tfvars` that contains a key value pairs
 ```
 resource_group_name = "example-resources"
 ```
+# Outputs
+OUtputs some values from our resources.
+We first create a file named `output.tf`, where we specify the desired outputs (for example athe public ip address)
+```
+output "public_ip"{
+    value= azurerm_public_ip.my_public_ip.ip_address
+}
+```
+When we do `terraform apply, we will get the list of the outputs`. <br>
+We can also display the outputs using the command `terraform output` or displaying a signle value by `terraform output public_ip`
