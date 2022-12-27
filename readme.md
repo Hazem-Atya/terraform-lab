@@ -79,6 +79,23 @@ This backend supports <b>state locking</b> (using a semaphore that let's only on
 variable "resource_group_name"{
 type= string
 description = "resource group name"
-# default = "example-resources"
 }
+```
+### Using a variable
+```
+resource "azurerm_resource_group" "example" {
+  name     = var.resource_group_name
+  location = "West Europe"
+}
+```
+#### <br>Option 1
+When we use terraform.apply, we will be asked to type the used variables, which is kinda tidious. <br>
+#### <br>Option 2
+Exporting the variables `export TF_VAR_VARIALBE_NAME=value`, <br> e.g. `export TF_VAR_resource_group_name=example-resources` => We we do `terraform.apply` we won'tbe asked to type the values of the vars (they will automatically read from the env variables).
+#### <br>Option 3
+`terraform apply -var resource_group_name=example-resources`
+#### <br>Option 4
+Creating a file named `terraform.tfvars` that contains a key value pairs
+```
+resource_group_name = "example-resources"
 ```
