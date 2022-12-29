@@ -1,3 +1,10 @@
+# generate RSA key
+resource "tls_private_key" "new-key" {
+  algorithm = "RSA"
+}
+
+
+#-----------------------------------------------------------
 # creating a resrouce group
 resource "azurerm_resource_group" "example" {
   name     = var.resource_group_name
@@ -57,8 +64,9 @@ resource "azurerm_linux_virtual_machine" "example" {
 
 
   admin_ssh_key {
-    username   = "adminuser"
-    public_key = file("~/.ssh/id_rsa.pub")
+    username = "adminuser"
+    # public_key = file("~/.ssh/id_rsa.pub")
+    public_key = tls_private_key.new-key.public_key_openssh
   }
 
   os_disk {
@@ -72,4 +80,23 @@ resource "azurerm_linux_virtual_machine" "example" {
     sku       = "16.04-LTS"
     version   = "latest"
   }
+  connection {
+    type        = "ssh"
+    user        = "adminuser"
+    private_key = tls_private_key.new-key.private_key_openssh
+    host        = self.public_ip_address
+  }
+
+
+  provisioner "remote-exec" {
+    inline = [
+      "bash -c \"echo 'hello Hazem!' > ~/file.txt\""
+    ]
+  }
 }
+
+
+
+# provisioner "local-exec" {
+#   command = "echo ${self.private_ip} >> private_ips.txt"
+# }
