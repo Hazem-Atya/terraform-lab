@@ -14,18 +14,19 @@ The language used by terraform is HCL.
   ```
 Note: the name of the resource in the terraform project is not the same as the name of the resource name in azure.
 
-* `terraform init`: initializes a working directory containing configuration files and installs plugins for required providers (terraform detects the needed installation from the .tf files). We can use more than one cloud provider.<br>
+* `terraform init`: initializes a working directory containing configuration files and installs plugins for required providers (terraform detects the needed installations from the .tf files). We can use more than one cloud provider.<br>
 You can browse the different providers in the [official docs](https://registry.terraform.io/browse/providers).
 * `terraform version`: Displays the version of Terraform and all installed plugins.
 * `terraform fmt`: Formatting the .tf files.
 * `az login` 
 * `ssh-keygen -t rsa -b 2048 -f ~/.ssh/id_rsa -q -N ''`: generate a key locally (if we don't possess one)
 * `terraform plan`: change set (what will happen if we apply the changes)
-* `terraform validate`
+* `terraform validate`: validate the syntax of the configuration included in Terraform file locally.
 * `terraform apply` <br>
 
-<b>Important note</b>: The order of resource creating is not the same as they appear in the .tf file. Terraform constructs a dependency graph between the resources to know the order in which they will be created. (a resource is dependant on another one if it uses one or more of its attributes<br>
-```resource "azurerm_virtual_network" "example" {
+<b>Important note</b>: The order of resource creating is not the same as they appear in the .tf file. Terraform constructs a dependency graph between the resources to know the order in which they will be created. (a resource is dependant on another one if it uses one or more of its attributes)<br>
+```
+resource "azurerm_virtual_network" "example" {
   name                = "example-network" # name in the cloud
   address_space       = ["10.0.0.0/16"]
   location            = azurerm_resource_group.example.location
@@ -70,14 +71,16 @@ We just need to add these config in the resource definition: (we also need to cr
 ```
 Another solution is using count in the creation of the network interfaces and ``for each`` when we create the vms.
 
-# 4- Variables
-### Defining a variable
+# 3- Variables
+### Defining a variable (variable.tf)
 ```
 variable "resource_group_name"{
 type= string
 description = "resource group name"
 }
 ```
+<b>IMPORTANT NOTE: </b>If we decalre a default value for the variable => the variables becomes optional.
+
 ### Using a variable
 ```
 resource "azurerm_resource_group" "example" {
@@ -85,6 +88,7 @@ resource "azurerm_resource_group" "example" {
   location = "West Europe"
 }
 ```
+
 #### <b>Option 1</b>
 When we use terraform.apply, we will be asked to type the used variables, which is kinda tidious.
 #### <b>Option 2</b>
@@ -96,9 +100,9 @@ Creating a file named `terraform.tfvars` that contains a key value pairs
 ```
 resource_group_name = "example-resources"
 ```
-# 5- Outputs
-OUtputs some values from our resources.
-We first create a file named `output.tf`, where we specify the desired outputs (for example athe public ip address)
+# 4- Outputs
+Outputs some values from our resources.
+We first create a file named `output.tf`, where we specify the desired outputs (for example the public ip address)
 ```
 output "public_ip"{
     value= azurerm_public_ip.my_public_ip.ip_address
@@ -107,7 +111,7 @@ output "public_ip"{
 When we do `terraform apply`, we will get the list of the outputs. <br>
 We can also display the outputs using the command `terraform output` or displaying a signle value by `terraform output public_ip`
 
-# 6- Generate a key pair using terraform
+# 5- Generate a key pair using terraform
 [private tls key ](https://registry.terraform.io/providers/hashicorp/tls/latest/docs/resources/private_key)
 * Key generation
 ```
@@ -115,7 +119,7 @@ resource "tls_private_key" "new-key" {
   algorithm   = "RSA"
 }
 ```
-* Passing the <b>public</b>key to `admin ssh key` (inside vm creation):
+* Passing the <b>public</b> key to `admin ssh key` (inside vm creation):
  ```
     public_key = tls_private_key.new-key.public_key_openssh
  ```
@@ -126,12 +130,12 @@ output "private_key"{
     sensitive = true
 }
 ```
-<b>Note:</b>senstitive tells terraform not to output the value in the terminal unless asked explicitly by the user. `terraform output -raw private_key`.
-<b>Note:</b>The private key is stored in the tfstate.
+<b>Note:</b> senstitive tells terraform not to output the value in the terminal unless asked explicitly by the user. `terraform output -raw private_key`.
+<b>Note:</b> The private key is stored in the tfstate.
 
-# 3- Terraform state
+# 6- Terraform state
 To track the state of the creation (what was created, what should be created,..), terraform uses a json file `terraform.tfstate` which is stored locally by default. <br>
-However, if we want to collaborate in the same terraform project, the state file should be shared. One of the ways of sharing the file is using ``terraform backend``. In azure this the available backend is [blob storage](https://developer.hashicorp.com/terraform/language/settings/backends/azurerm). <br>
+However, if we want to collaborate in the same terraform project, the state file should be shared. One of the ways of sharing the file is using ``terraform backend``. In azure twe can use [blob storage](https://developer.hashicorp.com/terraform/language/settings/backends/azurerm). <br>
 This backend supports <b>state locking</b> (using a semaphore that let's only one user edits the state: one apply at the same time).
 
 ## How does terraform work in the backgound?
@@ -154,13 +158,13 @@ When we do ``plan`` or ``apply`` terraform compares the content of the .tf files
   }
 ```
 * After running `terraform init`, our `terraform.tfstate` file will be moved to the container inside the storage account. (the local file will become empty)
-NB: Since the state file contains all data about our resources such as private keys, it's a good practice to dedicate to put it in a storage account that belongs to a resource group which is not public (accessbile only by devops  engineers foe example).
+NB: Since the state file contains all data about our resources such as private keys, it's a good practice to put it in a storage account that belongs to a resource group which is not public (accessbile only by devops  engineers for example).
 
-# Terraform provisioners
+# 7- Terraform provisioners
 You can use provisioners to model specific actions on the local machine or on a remote machine in order to prepare servers or other infrastructure objects for service.<br> 
-Informally, executes a definition on a resource when this resource is created and ready. (for e.g. executing a command remotely, copying a file from one location to another,.. )<br>
-E.g: Connecting to the created vm via ssh and executing a simple bash command: (this code was added inside teh vm definition in main.tf):
-```
+Informally, provisioners execute a definition on a resource when this resource is created and ready. (for e.g. executing a command remotely, copying a file from one location to another,.. )<br>
+E.g: Connecting to the created vm via ssh and executing a simple bash command: (this code was added inside the vm definition in main.tf):
+```yaml
   connection {
     type        = "ssh"
     user        = "adminuser"
@@ -177,3 +181,22 @@ E.g: Connecting to the created vm via ssh and executing a simple bash command: (
   * `terraform taint azurerm_linux_virtual_machine.example`: mark our resource for deletion (this will force the resrouce to be recreated in the next apply), the syntax of the taint command is `terraform taint RESOURCE_TYPE.RESOURCE_NAME`.
   * `terraform apply`, we will get the following output `  # azurerm_linux_virtual_machine.example is tainted, so must be replaced`.
   * We can output our private key in order to manually ssh to the machine and verify that our `remote-exec` worked. 
+
+# 8- Alias
+You can optionally define multiple configurations for the same provider, and select which one to use on a per-resource or per-module basis. The primary reason for this is to support multiple regions for a cloud platform.<br>
+example:
+```yaml
+# The default provider configuration; resources that begin with `aws_` will use
+# it as the default, and it can be referenced as `aws`.
+provider "aws" {
+  region = "us-east-1"
+}
+
+# Additional provider configuration for west coast region; resources can
+# reference this as `aws.west`.
+provider "aws" {
+  alias  = "west"
+  region = "us-west-2"
+}
+
+``` 
